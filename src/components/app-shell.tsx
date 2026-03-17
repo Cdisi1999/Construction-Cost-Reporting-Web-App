@@ -18,6 +18,10 @@ export function AppShell({
     <div className="min-h-screen">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div>
+            <h1 className="text-lg font-semibold text-brand">Construction Cost Tracker</h1>
+            <p className="text-xs text-slate-500">Field Cost Reporting System</p>
+          </div>
           <h1 className="text-lg font-semibold text-brand">Construction Cost Tracker</h1>
           <nav className="flex flex-wrap gap-2">
             {links.map((link) => (
