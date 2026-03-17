@@ -22,6 +22,7 @@ export function AppShell({
             <h1 className="text-lg font-semibold text-brand">Construction Cost Tracker</h1>
             <p className="text-xs text-slate-500">Field Cost Reporting System</p>
           </div>
+          <h1 className="text-lg font-semibold text-brand">Construction Cost Tracker</h1>
           <nav className="flex flex-wrap gap-2">
             {links.map((link) => (
               <Link

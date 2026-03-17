@@ -75,6 +75,9 @@ export default async function WeeklySummaryPage({
                 <input id="weekEnding" name="weekEnding" type="date" defaultValue={weekEnding} />
               </div>
               <button className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white">Apply</button>
+              <button className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white">
+                Apply
+              </button>
             </form>
 
             <div className="flex flex-wrap gap-2">
@@ -120,6 +123,13 @@ export default async function WeeklySummaryPage({
               </p>
               <p className="mt-1 text-sm text-slate-600">Submit daily entries to generate weekly summaries.</p>
             </div>
+          <div className="rounded-lg border border-dashed bg-white p-8 text-center shadow-sm">
+            <p className="text-base font-semibold text-slate-800">
+              No weekly rollup data found for the selected week.
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              Submit daily entries to generate weekly summaries.
+            </p>
           </div>
         )}
       </section>

@@ -18,6 +18,17 @@ const requiredFields = [
   "Cost Code",
   "Scope of Work",
   "Location / Design Unit / Area"
+import { useState } from "react";
+
+const UNIT_OF_MEASURE_OPTIONS = ["CY", "LF", "SF", "EA", "TON", "HR", "LS"];
+
+const COST_CODE_OPTIONS = [
+  { code: "01-100", description: "Mobilization" },
+  { code: "02-200", description: "Earthwork / Excavation" },
+  { code: "03-300", description: "Concrete" },
+  { code: "04-400", description: "Masonry" },
+  { code: "05-500", description: "Structural Steel" },
+  { code: "31-100", description: "Site Utilities" }
 ];
 
 const initialState = {
@@ -30,6 +41,8 @@ const initialState = {
   location_area: "",
   quantity_installed: "",
   unit_of_measure: "EA",
+  labor_hours: "",
+  headcount: "",
   equipment_hours: "",
   overtime_hours: "",
   delay_flag: false,
@@ -74,6 +87,12 @@ export function DailyEntryForm() {
     event.preventDefault();
     setStatus(null);
 
+export function DailyEntryForm() {
+  const [form, setForm] = useState(initialState);
+  const [status, setStatus] = useState<string>("");
+
+  async function submitForm(event: React.FormEvent) {
+    event.preventDefault();
     const response = await fetch("/api/entries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,6 +101,8 @@ export function DailyEntryForm() {
         quantity_installed: Number(form.quantity_installed || 0),
         labor_hours: laborTotals.totalHours,
         headcount: laborTotals.headcount,
+        labor_hours: Number(form.labor_hours || 0),
+        headcount: Number(form.headcount || 0),
         equipment_hours: Number(form.equipment_hours || 0),
         overtime_hours: Number(form.overtime_hours || 0)
       })
@@ -95,6 +116,12 @@ export function DailyEntryForm() {
     }
 
     setStatus({ kind: "error", message: "Unable to save daily entry. Check required fields and try again." });
+      setStatus("Saved daily entry.");
+      setForm(initialState);
+      return;
+    }
+
+    setStatus("Unable to save daily entry. Check required fields.");
   }
 
   return (
@@ -105,12 +132,14 @@ export function DailyEntryForm() {
           <p className="text-sm text-slate-600">Fields marked with * are required.</p>
         </div>
       </div>
+      <h2 className="text-lg font-semibold">Daily Field Entry</h2>
 
       <section className="space-y-3 rounded-md border border-slate-200 p-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Work Info</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <FieldLabel htmlFor="entry_date" label="Date" required />
+            <label htmlFor="entry_date">Date</label>
             <input
               id="entry_date"
               type="date"
@@ -121,6 +150,7 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="foreman_name" label="Foreman / Superintendent name" required />
+            <label htmlFor="foreman_name">Foreman / Superintendent name</label>
             <input
               id="foreman_name"
               type="text"
@@ -132,6 +162,7 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="crew_name" label="Crew / Subcontractor" required />
+            <label htmlFor="crew_name">Crew / Subcontractor</label>
             <input
               id="crew_name"
               type="text"
@@ -143,12 +174,14 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="cost_code" label="Cost Code" required />
+            <label htmlFor="cost_code">Cost Code</label>
             <select
               id="cost_code"
               value={form.cost_code}
               onChange={(event) => {
                 const selectedCode = event.target.value;
                 const selected = PROJECT_COST_CODES.find((option) => option.code === selectedCode);
+                const selected = COST_CODE_OPTIONS.find((option) => option.code === selectedCode);
                 setForm((prev) => ({
                   ...prev,
                   cost_code: selectedCode,
@@ -159,6 +192,7 @@ export function DailyEntryForm() {
             >
               <option value="">Select cost code</option>
               {PROJECT_COST_CODES.map((option) => (
+              {COST_CODE_OPTIONS.map((option) => (
                 <option key={option.code} value={option.code}>
                   {option.code} - {option.description}
                 </option>
@@ -167,6 +201,7 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="cost_code_description" label="Cost Code Description" />
+            <label htmlFor="cost_code_description">Cost Code Description</label>
             <input
               id="cost_code_description"
               type="text"
@@ -177,6 +212,11 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="scope_of_work" label="Scope of Work" required />
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="scope_of_work">Scope of Work</label>
             <input
               id="scope_of_work"
               type="text"
@@ -188,6 +228,7 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="location_area" label="Location / Design Unit / Area" required />
+            <label htmlFor="location_area">Location / Design Unit / Area</label>
             <input
               id="location_area"
               type="text"
@@ -205,6 +246,7 @@ export function DailyEntryForm() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <FieldLabel htmlFor="quantity_installed" label="Quantity Installed" />
+            <label htmlFor="quantity_installed">Quantity Installed</label>
             <input
               id="quantity_installed"
               type="number"
@@ -216,6 +258,7 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="unit_of_measure" label="Unit of Measure" />
+            <label htmlFor="unit_of_measure">Unit of Measure</label>
             <select
               id="unit_of_measure"
               value={form.unit_of_measure}
@@ -294,6 +337,28 @@ export function DailyEntryForm() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <FieldLabel htmlFor="equipment_hours" label="Equipment Hours" />
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Labor & Equipment</h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label htmlFor="labor_hours">Labor Hours</label>
+            <input
+              id="labor_hours"
+              type="number"
+              value={form.labor_hours}
+              onChange={(event) => setForm((prev) => ({ ...prev, labor_hours: event.target.value }))}
+            />
+          </div>
+          <div>
+            <label htmlFor="headcount">Headcount</label>
+            <input
+              id="headcount"
+              type="number"
+              value={form.headcount}
+              onChange={(event) => setForm((prev) => ({ ...prev, headcount: event.target.value }))}
+            />
+          </div>
+          <div>
+            <label htmlFor="equipment_hours">Equipment Hours</label>
             <input
               id="equipment_hours"
               type="number"
@@ -305,6 +370,7 @@ export function DailyEntryForm() {
           </div>
           <div>
             <FieldLabel htmlFor="overtime_hours" label="Overtime Hours" />
+            <label htmlFor="overtime_hours">Overtime Hours</label>
             <input
               id="overtime_hours"
               type="number"
@@ -354,6 +420,7 @@ export function DailyEntryForm() {
         {form.delay_flag ? (
           <div>
             <FieldLabel htmlFor="delay_reason" label="Delay Reason" />
+            <label htmlFor="delay_reason">Delay Reason</label>
             <input
               id="delay_reason"
               type="text"
@@ -366,6 +433,7 @@ export function DailyEntryForm() {
 
         <div>
           <FieldLabel htmlFor="notes" label="Notes" />
+          <label htmlFor="notes">Notes</label>
           <textarea
             id="notes"
             rows={3}
@@ -393,6 +461,10 @@ export function DailyEntryForm() {
       ) : null}
 
       <p className="text-xs text-slate-500">Required fields: {requiredFields.join(", ")}.</p>
+    </form>
+  );
+}
+      {status ? <p className="text-sm text-slate-600">{status}</p> : null}
     </form>
   );
 }
