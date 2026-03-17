@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { PROJECT_COST_CODES } from "@/lib/cost-codes";
 
 const UNIT_OF_MEASURE_OPTIONS = ["CY", "LF", "SF", "EA", "TON", "HR", "LS"];
 
-const COST_CODE_OPTIONS = [
-  { code: "01-100", description: "Mobilization" },
-  { code: "02-200", description: "Earthwork / Excavation" },
-  { code: "03-300", description: "Concrete" },
-  { code: "04-400", description: "Masonry" },
-  { code: "05-500", description: "Structural Steel" },
-  { code: "31-100", description: "Site Utilities" }
-];
+type LaborRow = {
+  id: number;
+  laborer_name: string;
+  hours: string;
+};
+
+const EMPTY_LABOR_ROW = (): LaborRow => ({
+  id: Date.now() + Math.floor(Math.random() * 1000),
+  laborer_name: "",
+  hours: ""
+});
 
 const initialState = {
   entry_date: "",
@@ -23,8 +27,6 @@ const initialState = {
   location_area: "",
   quantity_installed: "",
   unit_of_measure: "EA",
-  labor_hours: "",
-  headcount: "",
   equipment_hours: "",
   overtime_hours: "",
   delay_flag: false,
@@ -35,9 +37,20 @@ const initialState = {
 
 export function DailyEntryForm() {
   const [form, setForm] = useState(initialState);
+  const [laborRows, setLaborRows] = useState<LaborRow[]>([EMPTY_LABOR_ROW()]);
   const [status, setStatus] = useState("");
 
-  async function submitForm(event: React.FormEvent) {
+  const laborHours = useMemo(
+    () => laborRows.reduce((sum, row) => sum + Number(row.hours || 0), 0),
+    [laborRows]
+  );
+
+  const headcount = useMemo(
+    () => laborRows.filter((row) => row.laborer_name.trim() || Number(row.hours || 0) > 0).length,
+    [laborRows]
+  );
+
+  async function submitForm(event: FormEvent) {
     event.preventDefault();
 
     const response = await fetch("/api/entries", {
@@ -46,8 +59,8 @@ export function DailyEntryForm() {
       body: JSON.stringify({
         ...form,
         quantity_installed: Number(form.quantity_installed || 0),
-        labor_hours: Number(form.labor_hours || 0),
-        headcount: Number(form.headcount || 0),
+        labor_hours: laborHours,
+        headcount,
         equipment_hours: Number(form.equipment_hours || 0),
         overtime_hours: Number(form.overtime_hours || 0)
       })
@@ -56,6 +69,7 @@ export function DailyEntryForm() {
     if (response.ok) {
       setStatus("Daily entry saved successfully.");
       setForm(initialState);
+      setLaborRows([EMPTY_LABOR_ROW()]);
       return;
     }
 
@@ -111,7 +125,7 @@ export function DailyEntryForm() {
               value={form.cost_code}
               onChange={(event) => {
                 const selectedCode = event.target.value;
-                const selected = COST_CODE_OPTIONS.find((option) => option.code === selectedCode);
+                const selected = PROJECT_COST_CODES.find((option) => option.code === selectedCode);
                 setForm((prev) => ({
                   ...prev,
                   cost_code: selectedCode,
@@ -121,9 +135,9 @@ export function DailyEntryForm() {
               required
             >
               <option value="">Select cost code</option>
-              {COST_CODE_OPTIONS.map((option) => (
+              {PROJECT_COST_CODES.map((option) => (
                 <option key={option.code} value={option.code}>
-                  {option.code} - {option.description}
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -147,28 +161,22 @@ export function DailyEntryForm() {
               type="text"
               value={form.scope_of_work}
               onChange={(event) => setForm((prev) => ({ ...prev, scope_of_work: event.target.value }))}
-              placeholder="Excavation at Track 4 drainage trench"
+              placeholder="e.g., Install underground utility conduit"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="location_area">Location / Design Unit / Area *</label>
+            <label htmlFor="location_area">Location / Area</label>
             <input
               id="location_area"
               type="text"
               value={form.location_area}
               onChange={(event) => setForm((prev) => ({ ...prev, location_area: event.target.value }))}
-              placeholder="DU-3 / Platform East"
-              required
+              placeholder="Grid B4 to C4"
             />
           </div>
-        </div>
-      </section>
 
-      <section className="space-y-3 rounded-md border border-slate-200 p-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Production</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label htmlFor="quantity_installed">Quantity Installed</label>
             <input
@@ -197,26 +205,68 @@ export function DailyEntryForm() {
       </section>
 
       <section className="space-y-3 rounded-md border border-slate-200 p-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Labor</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Labor</h3>
+          <button
+            type="button"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            onClick={() => setLaborRows((prev) => [...prev, EMPTY_LABOR_ROW()])}
+          >
+            + Add Laborer
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {laborRows.map((row, index) => (
+            <div key={row.id} className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
+              <input
+                type="text"
+                value={row.laborer_name}
+                onChange={(event) =>
+                  setLaborRows((prev) =>
+                    prev.map((item) =>
+                      item.id === row.id ? { ...item, laborer_name: event.target.value } : item
+                    )
+                  )
+                }
+                placeholder="Laborer Name"
+                aria-label={`Laborer ${index + 1} name`}
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.25"
+                value={row.hours}
+                onChange={(event) =>
+                  setLaborRows((prev) =>
+                    prev.map((item) => (item.id === row.id ? { ...item, hours: event.target.value } : item))
+                  )
+                }
+                placeholder="Hours"
+                aria-label={`Laborer ${index + 1} hours`}
+              />
+              <button
+                type="button"
+                className="rounded-md border border-rose-200 px-2 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={laborRows.length === 1}
+                onClick={() =>
+                  setLaborRows((prev) => (prev.length === 1 ? prev : prev.filter((item) => item.id !== row.id)))
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="labor_hours">Labor Hours</label>
-            <input
-              id="labor_hours"
-              type="number"
-              value={form.labor_hours}
-              onChange={(event) => setForm((prev) => ({ ...prev, labor_hours: event.target.value }))}
-            />
+            <input id="labor_hours" type="number" value={laborHours.toFixed(2)} readOnly />
           </div>
-
           <div>
             <label htmlFor="headcount">Headcount</label>
-            <input
-              id="headcount"
-              type="number"
-              value={form.headcount}
-              onChange={(event) => setForm((prev) => ({ ...prev, headcount: event.target.value }))}
-            />
+            <input id="headcount" type="number" value={headcount} readOnly />
           </div>
         </div>
       </section>
