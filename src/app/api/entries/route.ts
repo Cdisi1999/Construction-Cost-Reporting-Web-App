@@ -3,12 +3,11 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   const payload = await request.json();
-  const { equipment_entries, ...dailyEntry } = payload;
-  void equipment_entries;
 
-  const { error } = await supabaseAdmin.from("daily_entries").insert(dailyEntry);
+  const { error } = await supabaseAdmin.from("daily_entries").insert(payload);
 
   if (error) {
+    console.error("Supabase insert error:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
