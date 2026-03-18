@@ -11,9 +11,21 @@ type LaborRow = {
   hours: string;
 };
 
+type EquipmentRow = {
+  id: number;
+  equipment_name: string;
+  hours: string;
+};
+
 const EMPTY_LABOR_ROW = (): LaborRow => ({
   id: Date.now() + Math.floor(Math.random() * 1000),
   laborer_name: "",
+  hours: ""
+});
+
+const EMPTY_EQUIPMENT_ROW = (): EquipmentRow => ({
+  id: Date.now() + Math.floor(Math.random() * 1000),
+  equipment_name: "",
   hours: ""
 });
 
@@ -27,8 +39,6 @@ const initialState = {
   location_area: "",
   quantity_installed: "",
   unit_of_measure: "EA",
-  equipment_hours: "",
-  overtime_hours: "",
   delay_flag: false,
   delay_reason: "",
   out_of_scope_flag: false,
@@ -38,6 +48,7 @@ const initialState = {
 export function DailyEntryForm() {
   const [form, setForm] = useState(initialState);
   const [laborRows, setLaborRows] = useState<LaborRow[]>([EMPTY_LABOR_ROW()]);
+  const [equipmentRows, setEquipmentRows] = useState<EquipmentRow[]>([EMPTY_EQUIPMENT_ROW()]);
   const [status, setStatus] = useState("");
 
   const laborHours = useMemo(
@@ -50,8 +61,19 @@ export function DailyEntryForm() {
     [laborRows]
   );
 
+  const equipmentHours = useMemo(
+    () => equipmentRows.reduce((sum, row) => sum + Number(row.hours || 0), 0),
+    [equipmentRows]
+  );
+
   async function submitForm(event: FormEvent) {
     event.preventDefault();
+    const equipmentEntries = equipmentRows
+      .map((row) => ({
+        equipment_name: row.equipment_name.trim(),
+        hours: Number(row.hours || 0)
+      }))
+      .filter((row) => row.equipment_name || row.hours > 0);
 
     const response = await fetch("/api/entries", {
       method: "POST",
@@ -61,8 +83,9 @@ export function DailyEntryForm() {
         quantity_installed: Number(form.quantity_installed || 0),
         labor_hours: laborHours,
         headcount,
-        equipment_hours: Number(form.equipment_hours || 0),
-        overtime_hours: Number(form.overtime_hours || 0)
+        equipment_entries: equipmentEntries,
+        equipment_hours: equipmentHours,
+        overtime_hours: 0
       })
     });
 
@@ -70,6 +93,7 @@ export function DailyEntryForm() {
       setStatus("Daily entry saved successfully.");
       setForm(initialState);
       setLaborRows([EMPTY_LABOR_ROW()]);
+      setEquipmentRows([EMPTY_EQUIPMENT_ROW()]);
       return;
     }
 
@@ -272,26 +296,66 @@ export function DailyEntryForm() {
       </section>
 
       <section className="space-y-3 rounded-md border border-slate-200 p-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Equipment</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Equipment</h3>
+          <button
+            type="button"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            onClick={() => setEquipmentRows((prev) => [...prev, EMPTY_EQUIPMENT_ROW()])}
+          >
+            + Add Equipment
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {equipmentRows.map((row, index) => (
+            <div key={row.id} className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
+              <input
+                type="text"
+                value={row.equipment_name}
+                onChange={(event) =>
+                  setEquipmentRows((prev) =>
+                    prev.map((item) =>
+                      item.id === row.id ? { ...item, equipment_name: event.target.value } : item
+                    )
+                  )
+                }
+                placeholder="Equipment Name"
+                aria-label={`Equipment ${index + 1} name`}
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.25"
+                value={row.hours}
+                onChange={(event) =>
+                  setEquipmentRows((prev) =>
+                    prev.map((item) => (item.id === row.id ? { ...item, hours: event.target.value } : item))
+                  )
+                }
+                placeholder="Hours"
+                aria-label={`Equipment ${index + 1} hours`}
+              />
+              <button
+                type="button"
+                className="rounded-md border border-rose-200 px-2 py-1 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={equipmentRows.length === 1}
+                onClick={() =>
+                  setEquipmentRows((prev) =>
+                    prev.length === 1 ? prev : prev.filter((item) => item.id !== row.id)
+                  )
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="equipment_hours">Equipment Hours</label>
-            <input
-              id="equipment_hours"
-              type="number"
-              value={form.equipment_hours}
-              onChange={(event) => setForm((prev) => ({ ...prev, equipment_hours: event.target.value }))}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="overtime_hours">Overtime Hours</label>
-            <input
-              id="overtime_hours"
-              type="number"
-              value={form.overtime_hours}
-              onChange={(event) => setForm((prev) => ({ ...prev, overtime_hours: event.target.value }))}
-            />
+            <input id="equipment_hours" type="number" value={equipmentHours.toFixed(2)} readOnly />
           </div>
         </div>
       </section>
