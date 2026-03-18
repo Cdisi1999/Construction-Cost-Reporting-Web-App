@@ -93,20 +93,23 @@ $$;
 alter table public.daily_entries enable row level security;
 alter table public.weekly_cost_summary enable row level security;
 
-create policy if not exists "Authenticated can read daily entries"
-  on public.daily_entries for select
-  to authenticated
-  using (true);
+drop policy if exists "Authenticated can read daily entries" on public.daily_entries;
+create policy "Authenticated can read daily entries"
+on public.daily_entries for select
+to authenticated
+using (true);
 
-create policy if not exists "Authenticated can insert daily entries"
-  on public.daily_entries for insert
-  to authenticated
-  with check (true);
+drop policy if exists "Authenticated can insert daily entries" on public.daily_entries;
+create policy "Authenticated can insert daily entries"
+on public.daily_entries for insert
+to authenticated
+with check (true);
 
-create policy if not exists "Authenticated can read weekly summary"
-  on public.weekly_cost_summary for select
-  to authenticated
-  using (true);
+drop policy if exists "Authenticated can read weekly summary" on public.weekly_cost_summary;
+create policy "Authenticated can read weekly summary"
+on public.weekly_cost_summary for select
+to authenticated
+using (true);
 
 create or replace function public.run_friday_weekly_summary_job()
 returns void
@@ -120,10 +123,3 @@ begin
 end;
 $$;
 
--- Requires pg_cron extension in your Supabase project.
-select cron.schedule(
-  'friday-weekly-summary',
-  '0 16 * * 5',
-  $$select public.run_friday_weekly_summary_job();$$
-)
-on conflict do nothing;
