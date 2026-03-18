@@ -27,20 +27,30 @@ export default async function HomePage() {
             Fast field capture for foremen and superintendents with cost-code-first reporting.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link className="rounded-md bg-white px-4 py-2 font-medium text-brand" href="/daily-log">
+            <Link
+              className="rounded-md bg-white px-4 py-2 font-medium text-brand"
+              href="/daily-log"
+            >
               Add Daily Entry
             </Link>
-            <Link className="rounded-md border border-white px-4 py-2 font-medium" href="/weekly-summary">
+            <Link
+              className="rounded-md border border-white px-4 py-2 font-medium"
+              href="/weekly-summary"
+            >
               View Weekly Summary
             </Link>
           </div>
         </section>
 
         <DashboardCards rows={rows} />
+
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Latest weekly rollup</h3>
-            <Link className="text-sm font-medium text-brand" href="/api/export?format=csv">
+            <h3 className="text-lg font-semibold">Latest weekly rollups</h3>
+            <Link
+              className="text-sm font-medium text-brand"
+              href="/api/export?format=csv"
+            >
               Download CSV
             </Link>
           </div>
